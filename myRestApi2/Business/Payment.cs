@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading.Tasks;
 using System.Web;
 using Omise;
@@ -151,12 +152,13 @@ namespace myRestApi2.Business
 		}
 
 
-		private async Task<bool> GetSecurityCodeCheck(string tokenId)
+		private async Task<Token> GetToken(string tokenId)
 		{
 			try
 			{
+				System.Net.ServicePointManager.SecurityProtocol = SecurityProtocolType.Tls12;
 				var token = await client.Tokens.Get(tokenId);
-				return token.Card.SecurityCodeCheck;
+				return token;
 			}
 			catch (Exception)
 			{
@@ -165,31 +167,27 @@ namespace myRestApi2.Business
 		}
 
 
-		public async Task AddCreditCard(string userId, string token)
+		public async Task AddCreditCard(string userId, string tokenId)
 		{
 			try
 			{
 				var omiseCustId = await GetOmiseCustId(userId);
+				var token = await GetToken(tokenId);
+				var omiseCardId = token.Card.Id;
 
 				if (String.IsNullOrEmpty(omiseCustId))
 				{
-					var customer = await CreateOmiseCustAndCard(userId, token);
+					var customer = await CreateOmiseCustAndCard(userId, tokenId);
 					omiseCustId = customer.Id;
 				}
 				else
 				{
-					await AddOmiseCard(omiseCustId, token);
+					await AddOmiseCard(omiseCustId, tokenId);
 				}
 
-				
-				var security_code_check = await GetSecurityCodeCheck(token);
-				
 				//Debit card
-				if (security_code_check == false)
+				if (token.Card.SecurityCodeCheck == false)
 				{
-					var list = await ListOmiseCard(omiseCustId);
-					var omiseCardId = list.ElementAt(list.Count - 1).Id;
-
 					try
 					{
 						//charge 20
