@@ -7,88 +7,69 @@ using System.Threading.Tasks;
 using System.Web.Http;
 using System.Web.UI;
 using myRestApi2.Models;
-using Omise;
-using Omise.Models;
+
+using myRestApi2.Business;
+using System.Web.Mvc;
+using System.Web.Helpers;
 
 namespace myRestApi2.Controllers
 {
     public class PaymentController : ApiController
     {
-		private Client client { get; set; }
-
-		public void init() {
-			client = new Client(skey: "skey_test_589yy3jkgojk1cev053");
-		}
-
-		public void GetCreateCustomer(string token)
-		{
-			init();
-		}
-
-		public string PostCreateCustomer(MyClass token)
+		public async Task<Object> PostAddCreditCard(ForAddCreditCard forAddCreditCard)
 		{
 			try
 			{
-
-				init();
-				//new PageAsyncTask(() => CreateCustomer(token.namE));
-
-				var task = CreateCustomer(token.namE);
-				task.Wait();
-
-				
+				var payment = new Payment();
+				await payment.AddCreditCard(forAddCreditCard.userId, forAddCreditCard.token);
+				return new { status = "ok" };
 			}
 			catch (Exception ex)
 			{
-				var a = ex;
+				return new { status = "ng", msg = ex.Message };
 			}
-			return "ok";
 		}
 
-
-		private async Task CreateCustomer(string token)
+		public async Task<Object> PostDelCreditCard(ForDelCreditCard forDelCreditCard)
 		{
-
 			try
 			{
-
-				var request = new CreateCustomerRequest
-				{
-					Description = "test des",
-					Card = token,
-				};
-
-				var customer = await client.Customers.Create(request);
-
-				var a = request.Description;
-				var b = customer.Description;
-
-
-				new PageAsyncTask(() => ChargeCustomer(customer.Id));
-
-				var task = ChargeCustomer(customer.Id);
-				task.Wait();
-
+				var payment = new Payment();
+				await payment.DelCreditCard(forDelCreditCard.userId, forDelCreditCard.omiseCardId);
+				return new { status = "ok" };
 			}
-			catch (Exception ex) {
-				var a = ex;
+			catch (Exception ex)
+			{
+				return new { status = "ng", msg = ex.Message };
 			}
 		}
 
-		private async Task ChargeCustomer(string cust)
+		public async Task<Object> PostGetCreditCardList(ForListCreditCard forListCreditCard)
 		{
-
-			var request = new CreateChargeRequest
-		{
-			Amount = 100000, // THB 1,000.00
-			Currency = "THB",
-			Customer = cust,
-		};
-
-			var charge = await client.Charges.Create(request);
-			var a = 100000;
-			var b = charge.Amount;
+			try
+			{
+				var payment = new Payment();
+				var list = await payment.GetCreditCardList(forListCreditCard.userId);
+				return new { status = "ok", list = list.Select(x => new ForListCreditCard() { omiseCardId = x.Id, creditCardName = x.Name })};
+			}
+			catch (Exception ex)
+			{
+				return new { status = "ng", msg = ex.Message };
+			}
 		}
 
+		public async Task<Object> PostChargeCreditCard(ForChargeCreditCard forChargeCreditCard)
+		{
+			try
+			{
+				var payment = new Payment();
+				await payment.ChargeCreditCard(forChargeCreditCard.userId, forChargeCreditCard.omiseCardId, forChargeCreditCard.amount);
+				return new { status = "ok" };
+			}
+			catch (Exception ex)
+			{
+				return new { status = "ng", msg = ex.Message };
+			}
+		}
 	}
 }
