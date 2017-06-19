@@ -17,7 +17,7 @@ namespace myRestApi2.Business
 		{
 			try
 			{
-				client = new Client(skey: "skey_test_589yy3jkgojk1cev053");
+				client = new Client(pkey: "pkey_test_589yy3jk6y6hp498vvl", skey: "skey_test_589yy3jkgojk1cev053");
 			}
 			catch (Exception)
 			{
@@ -185,24 +185,26 @@ namespace myRestApi2.Business
 					await AddOmiseCard(omiseCustId, tokenId);
 				}
 
-				//Debit card
-				if (token.Card.SecurityCodeCheck == false)
-				{
-					try
+				////Debit card
+				//if (token.Card.SecurityCodeCheck == false)
+				//{
+					
+					//charge 20
+					var charge = await ChargeCustomer(omiseCustId, omiseCardId, 20);
+
+					if (charge.FailureCode == null)
 					{
-						//charge 20
-						var charge = await ChargeCustomer(omiseCustId, omiseCardId, 20);
 						//refund 20
 						await Refund(charge.Id, 20);
 					}
-					catch (Exception)
+					else
 					{
 						//delete card
 						await DeleteOmiseCard(omiseCustId, omiseCardId);
-
-						throw;
+						throw new Exception(charge.FailureCode);
 					}
-				}
+
+				//}
 			}
 			catch (Exception)
 			{
@@ -231,6 +233,11 @@ namespace myRestApi2.Business
 				var omiseCustId = await GetOmiseCustId(userId);
 				var charge = await ChargeCustomer(omiseCustId, omiseCardId, amount);
 
+				//charge fail
+				if (charge.FailureCode != null)
+					throw new Exception(charge.FailureCode);
+				
+				//charge complete
 				var tranId = charge.Transaction;	//https://dashboard.omise.co/test/dashboard
 				var chargeId = charge.Id;			//https://dashboard.omise.co/test/charges
 			}
