@@ -71,5 +71,38 @@ namespace myRestApi2.Controllers
 				return new { status = "ng", msg = ex.Message };
 			}
 		}
+
+
+		public async Task<Object> PostChargeCreditCard3ds(ForChargeCreditCard forChargeCreditCard)
+		{
+			try
+			{
+				var payment = new Payment();
+				var urlBank = await payment.ChargeCreditCard3ds(forChargeCreditCard.userId, forChargeCreditCard.omiseCardId, forChargeCreditCard.amount, forChargeCreditCard.orderNo);
+				return new { status = "ok", urlBank = urlBank };
+			}
+			catch (Exception ex)
+			{
+				return new { status = "ng", msg = ex.Message };
+			}
+		}
+
+		public async Task<System.Web.Http.Results.RedirectResult> GetChargeCreditCard3dsComplete(int orderNo)
+		{
+			try
+			{
+				var payment = new Payment();
+				var urlBank = await payment.ChargeCreditCard3dsCheck(orderNo);
+
+				return Redirect("http://192.168.0.30:31956/PaymentComplete/Index");
+
+				//return new { status = "ok", urlBank = urlBank };
+			}
+			catch (Exception ex)
+			{
+				return Redirect("http://192.168.0.30:31956/PaymentComplete/Error?error="+ex.Message);
+				//return new { status = "ng", msg = ex.Message };
+			}
+		}
 	}
 }

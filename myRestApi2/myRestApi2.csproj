@@ -191,6 +191,7 @@
     <Compile Include="Business\Payment.cs" />
     <Compile Include="Controllers\HomeController.cs" />
     <Compile Include="Controllers\MyController.cs" />
+    <Compile Include="Controllers\PaymentCompleteController.cs" />
     <Compile Include="Controllers\PaymentController.cs" />
     <Compile Include="Controllers\ValuesController.cs" />
     <Compile Include="Global.asax.cs">
@@ -252,6 +253,8 @@
     <Content Include="Views\Home\Index.cshtml" />
     <Content Include="Views\Shared\Error.cshtml" />
     <Content Include="Views\Shared\_Layout.cshtml" />
+    <Content Include="Views\PaymentComplete\Index.cshtml" />
+    <Content Include="Views\PaymentComplete\Error.cshtml" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="App_Data\" />

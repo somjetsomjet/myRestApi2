@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
@@ -101,7 +103,7 @@ namespace myRestApi2.Business
 			}
 		}
 
-		private async Task<Charge> ChargeCustomer(string omiseCustId, string omiseCardId, double amount)
+		private async Task<Charge> ChargeCustomer(string omiseCustId, string omiseCardId, double amount, string urlComplete = null)
 		{
 			try
 			{
@@ -110,7 +112,8 @@ namespace myRestApi2.Business
 					Amount = (long)(amount*100),
 					Currency = "THB",
 					Customer = omiseCustId,
-					Card = omiseCardId
+					Card = omiseCardId,
+					ReturnUri = urlComplete
 				};
 
 				var charge = await client.Charges.Create(request);
@@ -240,6 +243,93 @@ namespace myRestApi2.Business
 				//charge complete
 				var tranId = charge.Transaction;	//https://dashboard.omise.co/test/dashboard
 				var chargeId = charge.Id;			//https://dashboard.omise.co/test/charges
+			}
+			catch (Exception)
+			{
+				throw;
+			}
+		}
+
+		public async Task<string> ChargeCreditCard3ds(string userId, string omiseCardId, double amount, int orderNo)
+		{
+			try
+			{
+				var omiseCustId = await GetOmiseCustId(userId);
+				var charge = await ChargeCustomer(omiseCustId, omiseCardId, amount, "http://192.168.0.30:31956/api/Payment/GetChargeCreditCard3dsComplete?orderNo=" + orderNo.ToString());
+
+				//charge fail
+				if (charge.FailureCode != null)
+					throw new Exception(charge.FailureCode);
+
+
+				//save db orderNo, chargeId
+				using (var conn = new SqlConnection(@"Data Source=CNX-NBTON\MSSQL2014; 
+							  Initial Catalog=Messanger;
+							  User id=sa;
+							  Password=Connex@123;"))
+					
+				using (var command = new SqlCommand("usp_in_up_payment", conn) { CommandType = CommandType.StoredProcedure })
+				{
+					command.Parameters.AddWithValue("@order_no", orderNo);
+					command.Parameters.AddWithValue("@charge_id", charge.Id);
+					command.Parameters.AddWithValue("@paid", 0);
+					command.Parameters.AddWithValue("@mod_datetime", DateTime.Now);
+					conn.Open();
+					command.ExecuteNonQuery();
+				}
+
+				return charge.AuthorizeURI;
+			}
+			catch (Exception)
+			{
+				throw;
+			}
+		}
+
+		public async Task<string> ChargeCreditCard3dsCheck(int orderNo)
+		{
+			try
+			{
+				string chargeId = "";
+
+				//get db chargeId
+				using (var conn = new SqlConnection(@"Data Source=CNX-NBTON\MSSQL2014; 
+							  Initial Catalog=Messanger;
+							  User id=sa;
+							  Password=Connex@123;"))
+
+				using (var command = new SqlCommand("usp_get_charge_id", conn) { CommandType = CommandType.StoredProcedure })
+				{
+					command.Parameters.AddWithValue("@order_no", orderNo);
+					conn.Open();
+					chargeId = (string)command.ExecuteScalar();
+				}
+
+				var charge = await client.Charges.Get(chargeId);
+
+				if (charge.Paid == true)
+				{
+					//save db orderNo, chargeId
+					using (var conn = new SqlConnection(@"Data Source=CNX-NBTON\MSSQL2014; 
+							  Initial Catalog=Messanger;
+							  User id=sa;
+							  Password=Connex@123;"))
+
+					using (var command = new SqlCommand("usp_in_up_payment", conn) { CommandType = CommandType.StoredProcedure })
+					{
+						command.Parameters.AddWithValue("@order_no", orderNo);
+						command.Parameters.AddWithValue("@charge_id", charge.Id);
+						command.Parameters.AddWithValue("@paid", 1);
+						command.Parameters.AddWithValue("@mod_datetime", DateTime.Now);
+						conn.Open();
+						command.ExecuteNonQuery();
+					}
+				}
+				else {
+					throw new Exception(charge.FailureCode);
+				}
+
+				return "ok";
 			}
 			catch (Exception)
 			{

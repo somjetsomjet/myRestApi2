@@ -33,6 +33,7 @@ namespace myRestApi2.Models
 
 	public class ForChargeCreditCard
 	{
+		public int orderNo { get; set; }
 		public string userId { get; set; }
 		public string omiseCardId { get; set; }
 		public double amount { get; set; }
