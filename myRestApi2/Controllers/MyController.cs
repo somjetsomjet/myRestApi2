@@ -79,7 +79,72 @@ namespace myRestApi2.Controllers
 			};
 		}
 
+		public  Object PostGetContain(LatLng location)
+		{
+			try
+			{
+				var _vertices = new List<LatLng>();
+				_vertices.Add(new LatLng() { Latitude = 13.696792, Longitude = 100.495216 });
+				_vertices.Add(new LatLng() { Latitude = 13.694749, Longitude = 100.497319 });
+				_vertices.Add(new LatLng() { Latitude = 13.692831, Longitude = 100.495559 });
+				_vertices.Add(new LatLng() { Latitude = 13.691392, Longitude = 100.500237 });
+				_vertices.Add(new LatLng() { Latitude = 13.693039, Longitude = 100.505773 });
+				_vertices.Add(new LatLng() { Latitude = 13.697501, Longitude = 100.505880 });
+				_vertices.Add(new LatLng() { Latitude = 13.696729, Longitude = 100.502769 });
+				_vertices.Add(new LatLng() { Latitude = 13.694061, Longitude = 100.503670 });
+				_vertices.Add(new LatLng() { Latitude = 13.693998, Longitude = 100.499915 });
+				_vertices.Add(new LatLng() { Latitude = 13.699752, Longitude = 100.501288 });
+				_vertices.Add(new LatLng() { Latitude = 13.696792, Longitude = 100.495216 });
 
+
+
+				var lastPoint = _vertices[_vertices.Count - 1];
+				var isInside = false;
+				var x = location.Longitude;
+				foreach (var point in _vertices)
+				{
+					var x1 = lastPoint.Longitude;
+					var x2 = point.Longitude;
+					var dx = x2 - x1;
+
+					if (Math.Abs(dx) > 180.0)
+					{
+						// we have, most likely, just jumped the dateline (could do further validation to this effect if needed).  normalise the numbers.
+						if (x > 0)
+						{
+							while (x1 < 0)
+								x1 += 360;
+							while (x2 < 0)
+								x2 += 360;
+						}
+						else
+						{
+							while (x1 > 0)
+								x1 -= 360;
+							while (x2 > 0)
+								x2 -= 360;
+						}
+						dx = x2 - x1;
+					}
+
+					if ((x1 <= x && x2 > x) || (x1 >= x && x2 < x))
+					{
+						var grad = (point.Latitude - lastPoint.Latitude) / dx;
+						var intersectAtLat = lastPoint.Latitude + ((x - x1) * grad);
+
+						if (intersectAtLat > location.Latitude)
+							isInside = !isInside;
+					}
+					lastPoint = point;
+				}
+
+				return new { status = isInside };
+			}
+			catch (Exception ex)
+			{
+				return new { status = "ng", msg = ex.Message };
+			}
+		}
 
 
 	}
